@@ -8,15 +8,15 @@ from scapy.all import sniff, wrpcap, conf
 
 # Dictionnaire global pour le comptage par protocole
 packet_counts = {"TCP": 0, "UDP": 0, "ICMP": 0, "OTHER": 0}
-captured_packets = []
+global_captured_packets = []
 log_entries = []
+capture_active = True  # ← AJOUTÉ : flag pour contrôler la capture
 
 
 def packet_info(packet):
-    """
-    Callback appelée pour chaque paquet capturé.
-    Extrait et affiche les informations : timestamp, protocole, IP src/dst, ports.
-    """
+    """Callback appelée pour chaque paquet capturé."""
+    global global_captured_packets
+    
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
 
     if packet.haslayer("IP"):
@@ -41,8 +41,8 @@ def packet_info(packet):
         sport = dport = "N/A"
 
     packet_counts[proto] = packet_counts.get(proto, 0) + 1
+    global_captured_packets.append(packet)
 
-    # Ligne pour le log
     log_line = (
         f"[{timestamp}] {proto:5s} | "
         f"{ip_src:15s}:{str(sport):5s} -> "
@@ -50,13 +50,18 @@ def packet_info(packet):
     )
     print(log_line)
     log_entries.append(log_line)
+    
+    # Optionnel : arrêt après N paquets pour test
+    # if len(global_captured_packets) >= 10:
+    #     return False  # Arrête la capture
 
 
 def signal_handler(sig, frame):
-    """Gestionnaire d'interruption Ctrl+C pour une sortie propre."""
+    """Gestionnaire d'interruption Ctrl+C - ne quitte pas immédiatement"""
+    global capture_active
     print("\n\n[!] Interruption clavier détectée. Arrêt en cours...")
-    final_report()
-    sys.exit(0)
+    capture_active = False  # ← Drapeau pour arrêter la capture
+    # Ne pas appeler sys.exit() ici !
 
 
 def final_report():
@@ -74,7 +79,24 @@ def final_report():
     print("=" * 50)
 
 
+def save_files(interface, bpf_filter):
+    """Sauvegarde les fichiers après la capture"""
+    if global_captured_packets:
+        wrpcap("capture.pcap", global_captured_packets)
+        print(f"\n[*] Fichier capture.pcap généré ({len(global_captured_packets)} paquets).")
+    else:
+        print("\n[!] Aucun paquet capturé.")
+
+    with open("capture.log", "w") as f:
+        f.write(f"=== Sniffer Log - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ===\n")
+        f.write(f"Interface: {interface} | Filtre: {bpf_filter or 'aucun'}\n\n")
+        f.write("\n".join(log_entries))
+    print(f"[*] Fichier capture.log généré ({len(log_entries)} lignes).")
+
+
 def main():
+    global capture_active, global_captured_packets
+    
     parser = argparse.ArgumentParser(
         description="Renifleur de paquets réseau générique avec Scapy"
     )
@@ -104,11 +126,12 @@ def main():
 
     try:
         # Lancement du sniffing
-        captured_packets = sniff(
+        sniff(
             iface=args.interface,
             filter=args.bpf_filter if args.bpf_filter else None,
             prn=packet_info,
-            store=True
+            store=False,
+            stop_filter=lambda x: not capture_active  # ← Arrête quand capture_active devient False
         )
     except PermissionError:
         print("[!] ERREUR : Privilèges insuffisants. Exécutez avec sudo.")
@@ -119,25 +142,11 @@ def main():
     except Exception as e:
         print(f"[!] ERREUR inattendue : {e}")
         sys.exit(1)
-    else:
-        # Sauvegarde des fichiers après arrêt
-        if captured_packets:
-            wrpcap("capture.pcap", captured_packets)
-            print(f"\n[*] Fichier capture.pcap généré ({len(captured_packets)} paquets).")
-        else:
-            print("\n[!] Aucun paquet capturé.")
-
-        with open("capture.log", "w") as f:
-            f.write(f"=== Sniffer Log - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ===\n")
-            f.write(f"Interface: {args.interface} | Filtre: {args.bpf_filter or 'aucun'}\n\n")
-            f.write("\n".join(log_entries))
-        print("[*] Fichier capture.log généré.")
-
-        final_report()
+    
+    # Sauvegarde après la capture (MAINTENANT ACCESSIBLE)
+    save_files(args.interface, args.bpf_filter)
+    final_report()
 
 
 if __name__ == "__main__":
     main()
-    
-    
-
