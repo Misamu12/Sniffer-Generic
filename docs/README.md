@@ -67,3 +67,17 @@ EOF
 
 sudo systemctl enable telnetd
 sudo systemctl start telnetd
+
+## Pour lancer le sniffer 
+
+### 1. Rendre le script exécutable
+chmod +x sniffer.py
+
+### 2. Capture complète (tout le trafic)
+sudo python3 sniffer.py -i eth0
+
+### 3. Capture ciblée FTP + HTTP + Telnet
+sudo python3 sniffer.py -i eth0 -f "tcp port 21 or tcp port 80 or tcp port 23"
+
+### 4. Capture Telnet uniquement
+sudo python3 sniffer.py -i wlan0 -f "tcp port 23"
