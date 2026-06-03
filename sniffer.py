@@ -1,10 +1,9 @@
-#!/usr/bin/env python3
 import argparse
 import signal
 import sys
 from datetime import datetime
 
-from scapy.all import sniff, wrpcap, conf
+from scapy.all import conf, sniff, wrpcap
 
 # Dictionnaire global pour le comptage par protocole
 packet_counts = {"TCP": 0, "UDP": 0, "ICMP": 0, "OTHER": 0}
@@ -81,14 +80,14 @@ def main():
     parser.add_argument(
         "interface",
         type=str,
-        help="Nom de l'interface réseau à écouter (ex: eth0, wlan0)"
+        help="Nom de l'interface réseau à écouter (ex: eth0, wlan0)",
     )
     parser.add_argument(
         "bpf_filter",
         type=str,
         nargs="?",
         default="",
-        help='Filtre BPF optionnel entre guillemets (ex: "tcp port 21 or tcp port 80")'
+        help='Filtre BPF optionnel entre guillemets (ex: "tcp port 21 or tcp port 80")',
     )
     args = parser.parse_args()
 
@@ -108,7 +107,7 @@ def main():
             iface=args.interface,
             filter=args.bpf_filter if args.bpf_filter else None,
             prn=packet_info,
-            store=True
+            store=True,
         )
     except PermissionError:
         print("[!] ERREUR : Privilèges insuffisants. Exécutez avec sudo.")
@@ -123,13 +122,19 @@ def main():
         # Sauvegarde des fichiers après arrêt
         if captured_packets:
             wrpcap("capture.pcap", captured_packets)
-            print(f"\n[*] Fichier capture.pcap généré ({len(captured_packets)} paquets).")
+            print(
+                f"\n[*] Fichier capture.pcap généré ({len(captured_packets)} paquets)."
+            )
         else:
             print("\n[!] Aucun paquet capturé.")
 
         with open("capture.log", "w") as f:
-            f.write(f"=== Sniffer Log - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ===\n")
-            f.write(f"Interface: {args.interface} | Filtre: {args.bpf_filter or 'aucun'}\n\n")
+            f.write(
+                f"=== Sniffer Log - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ===\n"
+            )
+            f.write(
+                f"Interface: {args.interface} | Filtre: {args.bpf_filter or 'aucun'}\n\n"
+            )
             f.write("\n".join(log_entries))
         print("[*] Fichier capture.log généré.")
 
@@ -138,6 +143,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
-    
-
