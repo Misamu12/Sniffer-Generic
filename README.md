@@ -17,3 +17,19 @@ sudo venv/bin/python app.py
 sudo python3 app.py --port=5001
 
 # OU modifier directement dans app.py
+
+-------------------------------------------------
+## Avertissement légal et éthique
+```
+Les manipulations décrites dans ce document sont réservées à un cadre pédagogique
+strict. Elles doivent impérativement être effectuées dans un environnement de
+laboratoire entièrement isolé, sur des machines virtuelles appartenant à l’étudiant.
+Toute reproduction de ces techniques sur un réseau tiers, sans autorisation explicite
+et écrite du propriétaire du système, est constitutive d’une infraction pénale dans la
+majorité des juridictions : accès frauduleux à un système de traitement automatisé
+de données, interception de communications électroniques, usurpation d’identité
+numérique.
+L’objectif de ces travaux est de comprendre les mécanismes d’attaque afin de
+concevoir des architectures défensives robustes et de justifier les bonnes pratiques
+de sécurité auprès des utilisateurs et des décideurs.
+```
